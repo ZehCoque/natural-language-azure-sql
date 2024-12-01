@@ -2,31 +2,34 @@
 
 import { Config, configSchema, explanationsSchema, Result } from "@/lib/types";
 import { openai } from "@ai-sdk/openai";
-import { sql } from "@vercel/postgres";
+import sql from 'mssql';
 import { generateObject } from "ai";
 import { z } from "zod";
+import { SQL_CONFIG } from "@/lib/sql-config";
+
+
 
 export const generateQuery = async (input: string) => {
   "use server";
   try {
     const result = await generateObject({
       model: openai("gpt-4o"),
-      system: `You are a SQL (postgres) and data visualization expert. Your job is to help the user write a SQL query to retrieve the data they need. The table schema is as follows:
+      system: `You are a MSSQL and data visualization expert. Your job is to help the user write a SQL query to retrieve the data they need. The table schema is as follows:
 
-      unicorns (
-      id SERIAL PRIMARY KEY,
-      company VARCHAR(255) NOT NULL UNIQUE,
-      valuation DECIMAL(10, 2) NOT NULL,
-      date_joined DATE,
-      country VARCHAR(255) NOT NULL,
-      city VARCHAR(255) NOT NULL,
-      industry VARCHAR(255) NOT NULL,
-      select_investors TEXT NOT NULL
-    );
+      CREATE TABLE unicorns (
+          id INT IDENTITY(1,1) PRIMARY KEY,
+          company NVARCHAR(255) NOT NULL UNIQUE,
+          valuation DECIMAL(10, 2) NOT NULL,
+          date_joined DATE,
+          country NVARCHAR(255) NOT NULL,
+          city NVARCHAR(255) NOT NULL,
+          industry NVARCHAR(255) NOT NULL,
+          select_investors NVARCHAR(MAX) NOT NULL
+      );
 
     Only retrieval queries are allowed.
 
-    For things like industry, company names and other string fields, use the ILIKE operator and convert both the search term and the field to lowercase using LOWER() function. For example: LOWER(industry) ILIKE LOWER('%search_term%').
+    For things like industry, company names and other string fields, use the LIKE operator and convert both the search term and the field to lowercase using LOWER() function. For example: LOWER(industry) LIKE LOWER('%search_term%').
 
     Note: select_investors is a comma-separated list of investors. Trim whitespace to ensure you're grouping properly. Note, some fields may be null or have only one value.
     When answering questions about a specific field, ensure you are selecting the identifying column (ie. what is Vercel's valuation would select company and valuation').
@@ -82,22 +85,19 @@ export const runGenerateSQLQuery = async (query: string) => {
     throw new Error("Only SELECT queries are allowed");
   }
 
-  let data: any;
+  let connection: sql.ConnectionPool;
   try {
-    data = await sql.query(query);
+    connection = await sql.connect(SQL_CONFIG);
+    const result = await sql.query(query);
+    await connection.close();
+    return result.recordset as Result[];
   } catch (e: any) {
-    if (e.message.includes('relation "unicorns" does not exist')) {
-      console.log(
-        "Table does not exist, creating and seeding it with dummy data now...",
-      );
-      // throw error
+    if (e.message.includes("Invalid object name 'unicorns'")) {
       throw Error("Table does not exist");
     } else {
       throw e;
     }
-  }
-
-  return data.rows as Result[];
+  } 
 };
 
 export const explainQuery = async (input: string, sqlQuery: string) => {
@@ -108,7 +108,7 @@ export const explainQuery = async (input: string, sqlQuery: string) => {
       schema: z.object({
         explanations: explanationsSchema,
       }),
-      system: `You are a SQL (postgres) expert. Your job is to explain to the user write a SQL query you wrote to retrieve the data they asked for. The table schema is as follows:
+      system: `You are a MSSQL expert. Your job is to explain to the user write a SQL query you wrote to retrieve the data they asked for. The table schema is as follows:
     unicorns (
       id SERIAL PRIMARY KEY,
       company VARCHAR(255) NOT NULL UNIQUE,

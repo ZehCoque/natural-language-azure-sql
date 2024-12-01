@@ -1,5 +1,4 @@
 import { Info } from "lucide-react";
-import { DeployButton } from "./deploy-button";
 import { Alert, AlertDescription } from "./ui/alert";
 import Link from "next/link";
 
@@ -17,7 +16,7 @@ export const ProjectInfo = () => {
           >
             AI SDK
           </Link>{" "}
-          to allow you to query a PostgreSQL database with natural language. The
+          to allow you to query a MSSQL database with natural language. The
           dataset is CB Insights&apos; list of all unicorn companies. Learn more
           at{" "}
           <Link
@@ -28,9 +27,6 @@ export const ProjectInfo = () => {
             CB Insights
           </Link>
           .
-          <div className="mt-4 sm:hidden">
-            <DeployButton />
-          </div>
         </AlertDescription>
       </Alert>
     </div>

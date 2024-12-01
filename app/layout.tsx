@@ -4,10 +4,9 @@ import { GeistSans } from "geist/font/sans";
 import { ThemeProvider } from "next-themes";
 
 export const metadata = {
-  metadataBase: new URL("https://natural-language-postgres.vercel.app"),
-  title: "Natural Language Postgres",
+  title: "Natural Language MSSQL",
   description:
-    "Chat with a Postgres database using natural language powered by the AI SDK by Vercel.",
+    "Chat with a MSSQL database using natural language powered by the AI SDK by Vercel.",
 };
 
 export default function RootLayout({
